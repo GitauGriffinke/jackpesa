@@ -11,6 +11,11 @@ const LoginSchema = z.object({
 
 const INVALID_CREDENTIALS = "Wrong phone number or password";
 
+// A real bcrypt hash, generated once at startup. Comparing against it when
+// the phone is unknown takes the same time as a real check, so response
+// timing doesn't reveal which phone numbers are registered.
+const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 12);
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = LoginSchema.safeParse(body);
@@ -27,11 +32,9 @@ export async function POST(request: Request) {
     select: { id: true, passwordHash: true },
   });
 
-  // Always run bcrypt, even when the user doesn't exist, so response
-  // timing doesn't reveal which phone numbers are registered.
   const passwordMatches = await bcrypt.compare(
     password,
-    user?.passwordHash ?? "$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinv",
+    user?.passwordHash ?? DUMMY_HASH,
   );
 
   if (!user || !passwordMatches) {
