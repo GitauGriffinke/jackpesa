@@ -14,7 +14,7 @@ interface GameCard {
 }
 
 const GAMES: GameCard[] = [
-  { id: "coin-toss",        label: "Coin Toss",        emoji: "🪙", description: "Heads or tails. 2× payout.",           built: false },
+  { id: "coin-toss", label: "Coin Toss", emoji: "🪙", description: "Heads or tails. 2× payout.", built: true },
   { id: "dice",             label: "Dice Roll",         emoji: "🎲", description: "Over or under. Up to 5×.",             built: false },
   { id: "lucky-wheel",      label: "Lucky Wheel",       emoji: "🎡", description: "Spin for multipliers up to 10×.",      built: false },
   { id: "slots",            label: "Slot Machine",      emoji: "🎰", description: "3 reels, classic symbols.",            built: false },
