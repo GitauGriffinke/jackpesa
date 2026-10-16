@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { formatKES } from "@/lib/money";
@@ -25,6 +26,12 @@ export default function DashboardPage() {
       <Suspense fallback={<p className="text-sm text-text-muted">Loading your balance...</p>}>
         <DashboardContent />
       </Suspense>
+      <Link
+        href="/dashboard/wallet"
+        className="rounded-lg bg-accent px-4 py-3 text-center font-semibold text-text hover:bg-accent-hover"
+      >
+        Deposit or withdraw
+      </Link>
       <LogoutButton />
     </main>
   );
