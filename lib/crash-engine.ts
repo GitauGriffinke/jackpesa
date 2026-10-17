@@ -26,8 +26,6 @@ function multiplierAt(startedAt: Date): number {
   return Math.max(1.0, parseFloat(Math.pow(Math.E, 0.1 * elapsed).toFixed(2)));
 }
 
-// Derive the current round state from the database row alone.
-// No in-memory state is needed.
 export async function getCurrentState(): Promise<CrashState | null> {
   const round = await prisma.round.findFirst({
     where: { game: "crash", status: "OPEN" },
@@ -39,12 +37,9 @@ export async function getCurrentState(): Promise<CrashState | null> {
   const outcome = round.outcome as { crashPoint: number; startedAt?: string } | null;
   const cp = outcome?.crashPoint ?? 2;
   const startedAt = outcome?.startedAt ? new Date(outcome.startedAt) : null;
-  const createdAt = round.createdAt;
-
-  const elapsed = Date.now() - createdAt.getTime();
+  const elapsed = Date.now() - round.createdAt.getTime();
 
   if (!startedAt && elapsed < WAITING_MS) {
-    // Still in WAITING phase.
     return {
       roundId: round.id,
       status: "WAITING",
@@ -58,7 +53,6 @@ export async function getCurrentState(): Promise<CrashState | null> {
   }
 
   if (!startedAt) {
-    // Transition to RUNNING: record startedAt in DB.
     const now = new Date();
     await prisma.round.update({
       where: { id: round.id },
@@ -79,8 +73,7 @@ export async function getCurrentState(): Promise<CrashState | null> {
   const mult = multiplierAt(startedAt);
 
   if (mult >= cp) {
-    // Crashed. Settle if not already done.
-    await settleCrashedRound(round.id, round.serverSeed, cp);
+    await settleCrashedRound(round.id, cp);
     return {
       roundId: round.id,
       status: "CRASHED",
@@ -105,8 +98,7 @@ export async function getCurrentState(): Promise<CrashState | null> {
   };
 }
 
-async function settleCrashedRound(roundId: string, serverSeed: string, cp: number) {
-  // Idempotent: only settle OPEN rounds.
+async function settleCrashedRound(roundId: string, cp: number) {
   const round = await prisma.round.findUnique({ where: { id: roundId } });
   if (!round || round.status === "SETTLED") return;
 
@@ -115,7 +107,6 @@ async function settleCrashedRound(roundId: string, serverSeed: string, cp: numbe
     data: { status: "SETTLED", outcome: { crashPoint: cp, settled: true } },
   });
 
-  // Mark all unsettled bets as LOST.
   await prisma.bet.updateMany({
     where: { roundId, status: "PENDING" },
     data: { status: "LOST", payoutCents: 0 },
@@ -128,22 +119,22 @@ export async function ensureOpenRound(): Promise<void> {
   });
   if (existing) return;
 
-  // Check if the last round crashed recently (3s cooldown).
+  // 3-second cooldown after last settled round.
   const last = await prisma.round.findFirst({
     where: { game: "crash", status: "SETTLED" },
     orderBy: { createdAt: "desc" },
   });
   if (last) {
-    const outcome = last.outcome as { settled?: boolean; startedAt?: string } | null;
-    if (outcome?.startedAt) {
-      const crashedAt = new Date(outcome.startedAt).getTime();
-      if (Date.now() - crashedAt < 3_000) return; // Still in cooldown.
-    }
+    const age = Date.now() - last.createdAt.getTime();
+    if (age < 3_000) return;
   }
 
   const serverSeed = generateServerSeed();
   const serverSeedHash = hashServerSeed(serverSeed);
-  const float = outcomeFloat(serverSeed, "house", Date.now());
+  // Use a small nonce that fits INT4: count of existing crash rounds mod 2^31.
+  const count = await prisma.round.count({ where: { game: "crash" } });
+  const nonce = count % 2_000_000_000;
+  const float = outcomeFloat(serverSeed, "house", nonce);
   const cp = crashPoint(float);
 
   await prisma.round.create({
@@ -152,7 +143,7 @@ export async function ensureOpenRound(): Promise<void> {
       serverSeed,
       serverSeedHash,
       clientSeed: "house",
-      nonce: Date.now(),
+      nonce,
       outcome: { crashPoint: cp },
       status: "OPEN",
     },
@@ -176,7 +167,14 @@ export async function placeCrashBet(
   try {
     await moveMoney({ userId, type: "BET", deltaCents: -amountCents, refId: state.roundId });
     await prisma.bet.create({
-      data: { userId, roundId: state.roundId, game: "crash", amountCents, payoutCents: 0, status: "PENDING" },
+      data: {
+        userId,
+        roundId: state.roundId,
+        game: "crash",
+        amountCents,
+        payoutCents: 0,
+        status: "PENDING",
+      },
     });
     return { ok: true };
   } catch (error: unknown) {
@@ -200,11 +198,8 @@ export async function cashOut(
   const mult = state.multiplier;
   const payoutCents = Math.floor(bet.amountCents * mult);
 
-  await prisma.bet.update({
-    where: { id: bet.id },
-    data: { status: "WON", payoutCents },
-  });
-
+  await prisma.bet.update({ where: { id: bet.id }, data: { status: "WON", payoutCents } });
   await moveMoney({ userId, type: "WIN", deltaCents: payoutCents, refId: state.roundId });
+
   return { ok: true, payoutCents, multiplier: mult };
 }
