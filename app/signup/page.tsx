@@ -1,150 +1,107 @@
 "use client";
-
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-const PHONE_PATTERN = /^254\d{9}$/;
 
 export default function SignupPage() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("254");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setError(null);
-
-    if (name.trim().length < 2) {
-      setError("Enter your full name");
-      return;
-    }
-    if (!PHONE_PATTERN.test(phone)) {
-      setError("Phone must look like 254XXXXXXXXX");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-    if (password !== confirm) {
-      setError("The two passwords do not match");
-      return;
-    }
-
-    setSubmitting(true);
-    const response = await fetch("/api/auth/register", {
+    if (password !== confirm) { setError("Passwords do not match."); return; }
+    setLoading(true);
+    const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), phone, password }),
+      body: JSON.stringify({ name, phone, password }),
     });
-    setSubmitting(false);
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      setError(data?.error ?? "Sign up failed. Try again.");
-      return;
-    }
+    const data = await res.json().catch(() => null);
+    setLoading(false);
+    if (!res.ok) { setError(data?.error ?? "Registration failed."); return; }
     router.push("/dashboard");
   }
 
-  const inputClass =
-    "w-full rounded-lg border border-zinc-300 bg-surface px-4 py-3 text-text placeholder:text-text-muted focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+  const inputClass = "w-full rounded-lg border border-border bg-surface px-4 py-3 text-text placeholder:text-text-muted focus:border-accent focus:outline-none focus-visible:ring-1 focus-visible:ring-accent";
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center px-6 py-12">
-      <h1 className="text-2xl font-bold text-text">Create your account</h1>
-      <p className="mt-1 text-sm text-text-muted">Start with your phone number.</p>
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-16">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 text-center">
+          <span className="text-5xl">🎰</span>
+          <h1 className="mt-3 text-3xl font-bold text-accent">Jackpesa</h1>
+          <p className="mt-1 text-sm text-text-muted">Demo casino. You get KES 10,000 free.</p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5" noValidate>
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
-          Full name
-          <input
-            className={inputClass}
-            autoComplete="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
+        <div className="rounded-2xl border border-border bg-card p-8">
+          <h2 className="text-xl font-bold text-text">Create account</h2>
+          <p className="mt-1 text-sm text-text-muted">Free demo money. No deposits needed.</p>
 
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
-          Phone number
-          <input
-            className={inputClass}
-            inputMode="numeric"
-            autoComplete="tel"
-            placeholder="254XXXXXXXXX"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-          />
-        </label>
+          <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4" noValidate>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
+              Full name
+              <input className={inputClass} placeholder="John Kamau" value={name} onChange={e => setName(e.target.value)} autoComplete="name" />
+            </label>
 
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
-          Password
-          <span className="relative">
-            <input
-              className={`${inputClass} pr-16`}
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder="At least 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <ToggleButton shown={showPassword} onToggle={() => setShowPassword((s) => !s)} />
-          </span>
-        </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
+              Phone number
+              <input className={inputClass} type="tel" placeholder="254712345678" value={phone} onChange={e => setPhone(e.target.value.trim())} autoComplete="tel" />
+              <span className="text-xs text-text-muted">Format: 254XXXXXXXXX</span>
+            </label>
 
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
-          Confirm password
-          <span className="relative">
-            <input
-              className={`${inputClass} pr-16`}
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder="Type it again"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-            />
-          </span>
-        </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
+              Password
+              <div className="relative">
+                <input
+                  className={inputClass}
+                  type={showPw ? "text" : "password"}
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+                <button type="button" onClick={() => setShowPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text text-xs">
+                  {showPw ? "Hide" : "Show"}
+                </button>
+              </div>
+            </label>
 
-        {error && (
-          <p role="alert" className="text-sm text-danger">
-            {error}
-          </p>
-        )}
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
+              Confirm password
+              <input
+                className={inputClass}
+                type={showPw ? "text" : "password"}
+                placeholder="Repeat password"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                autoComplete="new-password"
+              />
+            </label>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-lg bg-accent px-4 py-3 font-semibold text-text transition-colors hover:bg-accent-hover focus-visible:ring-2 focus-visible:ring-text focus-visible:outline-none disabled:opacity-60"
-        >
-          {submitting ? "Creating account..." : "Create account"}
-        </button>
-      </form>
+            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
-      <p className="mt-6 text-sm text-text-muted">
-        Already have an account?{" "}
-        <a href="/login" className="font-medium text-text underline underline-offset-4">
-          Log in
-        </a>
-      </p>
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-2 rounded-lg bg-accent py-3 font-semibold text-page transition-colors hover:bg-accent-hover disabled:opacity-60"
+            >
+              {loading ? "Creating account…" : "Create account & play"}
+            </button>
+          </form>
+        </div>
+
+        <p className="mt-6 text-center text-sm text-text-muted">
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-accent hover:text-accent-hover">Sign in</Link>
+        </p>
+      </div>
     </main>
-  );
-}
-
-function ToggleButton({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="absolute inset-y-0 right-3 my-auto h-fit text-sm font-medium text-text-muted hover:text-text"
-    >
-      {shown ? "Hide" : "Show"}
-    </button>
   );
 }
