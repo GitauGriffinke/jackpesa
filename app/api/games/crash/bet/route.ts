@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { placeCrashBet, startEngine } from "@/lib/crash-engine";
+import { placeCrashBet, ensureOpenRound } from "@/lib/crash-engine";
 import { toCents } from "@/lib/money";
-
-startEngine();
 
 const Schema = z.object({
   amountKes: z.number().int().min(10).max(150_000),
@@ -12,9 +10,7 @@ const Schema = z.object({
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const body = await request.json().catch(() => null);
   const parsed = Schema.safeParse(body);
@@ -25,9 +21,8 @@ export async function POST(request: Request) {
     );
   }
 
+  await ensureOpenRound();
   const result = await placeCrashBet(user.id, toCents(parsed.data.amountKes));
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 409 });
-  }
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 409 });
   return NextResponse.json({ ok: true });
 }
