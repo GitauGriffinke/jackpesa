@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type Pick = "high" | "low";
 type Phase = "idle" | "drawing" | "result";
@@ -18,7 +18,7 @@ function formatKES(cents: number) {
 const SUITS = ["♠","♥","♦","♣"];
 const RANKS = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 
-function randomCard() {
+function makeRandomCard() {
   const index = Math.floor(Math.random() * 52);
   return { card: { rank: RANKS[index%13], suit: SUITS[Math.floor(index/13)%4], value: index%13 }, index };
 }
@@ -32,16 +32,23 @@ function CardFace({ card, faceDown=false }: { card: CardType; faceDown?: boolean
   );
 }
 
+const PLACEHOLDER: CardType = { rank: "?", suit: "?", value: 0 };
+
 export default function CardHighLowPage() {
-  const [current, setCurrent] = useState(randomCard);
+  const [current, setCurrent] = useState<{ card: CardType; index: number } | null>(null);
   const [pick, setPick] = useState<Pick>("high");
   const [amount, setAmount] = useState("100");
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<RoundResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Only run Math.random() in the browser, never during prerender.
+  useEffect(() => { setCurrent(makeRandomCard()); }, []);
+
   async function handleBet(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setError(null); setResult(null); setPhase("drawing");
+    e.preventDefault();
+    if (!current) return;
+    setError(null); setResult(null); setPhase("drawing");
     const clientSeed = crypto.randomUUID();
     const res = await fetch("/api/games/card-high-low", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -69,11 +76,13 @@ export default function CardHighLowPage() {
       <div className="my-8 flex justify-center gap-6">
         <div className="flex flex-col items-center gap-2">
           <p className="text-xs text-text-muted">Current</p>
-          <CardFace card={current.card} />
+          <CardFace card={current?.card ?? PLACEHOLDER} faceDown={!current} />
         </div>
         <div className="flex flex-col items-center gap-2">
           <p className="text-xs text-text-muted">Next</p>
-          {phase === "result" && result ? <CardFace card={result.nextCard} /> : <CardFace card={{ rank:"?", suit:"?", value:0 }} faceDown />}
+          {phase === "result" && result
+            ? <CardFace card={result.nextCard} />
+            : <CardFace card={PLACEHOLDER} faceDown />}
         </div>
       </div>
       {phase === "result" && result && (
@@ -94,7 +103,7 @@ export default function CardHighLowPage() {
           </details>
           <div className="mt-4 flex gap-3">
             <button type="button" onClick={nextRound} className="flex-1 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-text hover:bg-accent-hover">Next card</button>
-            <button type="button" onClick={() => { setCurrent(randomCard()); setPhase("idle"); setResult(null); }} className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-text-muted hover:text-text">New game</button>
+            <button type="button" onClick={() => { setCurrent(makeRandomCard()); setPhase("idle"); setResult(null); }} className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-text-muted hover:text-text">New game</button>
           </div>
         </div>
       )}
@@ -113,7 +122,9 @@ export default function CardHighLowPage() {
             <input className={inputClass} inputMode="numeric" placeholder="100" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g,""))} />
           </label>
           {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-          <button type="submit" className="rounded-lg bg-accent px-4 py-3 font-semibold text-text transition-colors hover:bg-accent-hover">Draw card</button>
+          <button type="submit" disabled={!current} className="rounded-lg bg-accent px-4 py-3 font-semibold text-text transition-colors hover:bg-accent-hover disabled:opacity-60">
+            Draw card
+          </button>
         </form>
       )}
       {phase === "drawing" && <p className="text-center text-sm text-text-muted">Drawing...</p>}
