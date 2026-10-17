@@ -20,7 +20,7 @@ const GAMES: GameCard[] = [
   { id: "slots", label: "Slot Machine", emoji: "🎰", description: "3 reels, classic symbols.", built: true },
   { id: "plinko", label: "Plinko", emoji: "📍", description: "Drop the ball, hit a multiplier.", built: true },
   { id: "crash", label: "Crash", emoji: "🚀", description: "Cash out before it crashes.", built: true },
-  { id: "card-high-low",    label: "Card High / Low",   emoji: "🃏", description: "Higher or lower than the last card.", built: false },
+  { id: "card-high-low", label: "Card High / Low", emoji: "🃏", description: "Higher or lower than the last card.", built: true },
   { id: "mini-roulette",    label: "Mini Roulette",     emoji: "🎯", description: "Red, black, green, odd, or even.",    built: false },
   { id: "scratch-and-win",  label: "Scratch & Win",     emoji: "🎟️", description: "Scratch the card, reveal your prize.", built: false },
   { id: "penalty-shootout", label: "Penalty Shootout",  emoji: "⚽", description: "Pick your corner. Beat the keeper.",  built: false },
