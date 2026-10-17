@@ -23,7 +23,7 @@ const GAMES: GameCard[] = [
   { id: "card-high-low", label: "Card High / Low", emoji: "🃏", description: "Higher or lower than the last card.", built: true },
   { id: "mini-roulette", label: "Mini Roulette", emoji: "🎯", description: "Red, black, green, odd, or even.", built: true },
   { id: "scratch-and-win", label: "Scratch & Win", emoji: "🎟️", description: "Scratch the card, reveal your prize.", built: true },
-  { id: "penalty-shootout", label: "Penalty Shootout",  emoji: "⚽", description: "Pick your corner. Beat the keeper.",  built: false },
+  { id: "penalty-shootout", label: "Penalty Shootout", emoji: "⚽", description: "Pick your corner. Beat the keeper.", built: true },
 ];
 
 async function BalanceCard() {
