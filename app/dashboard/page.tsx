@@ -91,7 +91,7 @@ export default function DashboardPage() {
           <span className="text-sm">⚡</span>
           <h2 className="text-sm font-bold uppercase tracking-widest text-text-muted">Original Games</h2>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {ORIGINAL_GAMES.filter(g => g.id !== "crash").map(game => (
             <Link
               key={game.id}
@@ -115,7 +115,7 @@ export default function DashboardPage() {
           <span className="text-sm">🎮</span>
           <h2 className="text-sm font-bold uppercase tracking-widest text-text-muted">More Games</h2>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {MORE_GAMES.map(game => (
             <Link
               key={game.id}
